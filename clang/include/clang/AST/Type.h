@@ -479,9 +479,8 @@ public:
            // for __constant can be used as __generic.
            (A == LangAS::opencl_generic && B != LangAS::opencl_constant) ||
            // Consider pointer size address spaces to be equivalent to default.
-           ((isPtrSizeAddressSpace(A) && B == LangAS::Default) ||
-            (isPtrSizeAddressSpace(B) && A == LangAS::Default) ||
-            (isPtrSizeAddressSpace(A) && isPtrSizeAddressSpace(B)));
+           ((isPtrSizeAddressSpace(A) || A == LangAS::Default) &&
+            (isPtrSizeAddressSpace(B) || B == LangAS::Default));
   }
 
   /// Returns true if the address space in these qualifiers is equal to or

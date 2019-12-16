@@ -1872,14 +1872,9 @@ void MicrosoftCXXNameMangler::mangleAddressSpaceType(QualType T,
       Extra.mangleSourceName("_ASCUshared");
       break;
     case LangAS::ptr32_sptr:
-      Extra.mangleSourceName("_ASPtr32_sptr");
-      break;
     case LangAS::ptr32_uptr:
-      Extra.mangleSourceName("_ASPtr32_uptr");
-      break;
     case LangAS::ptr64:
-      Extra.mangleSourceName("_ASPtr64");
-      break;
+      llvm_unreachable("don't mangle ptr address spaces with _AS");
     }
   }
 

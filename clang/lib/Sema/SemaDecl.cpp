@@ -3153,64 +3153,6 @@ static void adjustDeclContextForDeclaratorDecl(DeclaratorDecl *NewD,
     FixSemaDC(VD->getDescribedVarTemplate());
 }
 
-static QualType RemovePtrSizeAddrSpace(ASTContext &Ctx, QualType T) {
-  if (const PointerType *Ptr = T->getAs<PointerType>()) {
-    QualType Pointee = Ptr->getPointeeType();
-    if (isPtrSizeAddressSpace(Pointee.getAddressSpace())) {
-      return Ctx.getPointerType(Ctx.removeAddrSpaceQualType(Pointee));
-    }
-  }
-  return T;
-}
-
-static bool HasSameFunctionTypeIgnoringPointerSizes(ASTContext &Ctx,
-                                                    QualType Old,
-                                                    QualType New) {
-  if (Ctx.hasSameType(Old, New))
-    return true;
-
-  if (const FunctionProtoType *OldProto = Old->getAs<FunctionProtoType>()) {
-    if (const FunctionProtoType *NewProto = New->getAs<FunctionProtoType>()) {
-      SmallVector<QualType, 16> OArgs(OldProto->param_types());
-      SmallVector<QualType, 16> NArgs(NewProto->param_types());
-      if (OArgs.size() != NArgs.size())
-        return false;
-
-      QualType OldRTy = RemovePtrSizeAddrSpace(Ctx, OldProto->getReturnType());
-      QualType NewRTy = RemovePtrSizeAddrSpace(Ctx, NewProto->getReturnType());
-
-      for (unsigned i = 0, n = OArgs.size(); i != n; ++i) {
-        QualType OArg = OArgs[i];
-        QualType NArg = NArgs[i];
-        if (Ctx.hasSameType(OArg, NArg))
-          continue;
-        OArgs[i] = RemovePtrSizeAddrSpace(Ctx, OArg);
-        NArgs[i] = RemovePtrSizeAddrSpace(Ctx, NArg);
-      }
-
-      QualType OldType =
-          Ctx.getFunctionType(OldRTy, OArgs, OldProto->getExtProtoInfo());
-      QualType NewType =
-          Ctx.getFunctionType(NewRTy, NArgs, NewProto->getExtProtoInfo());
-
-      return Ctx.hasSameType(OldType, NewType);
-    }
-  }
-
-  if (const FunctionNoProtoType *OldF = Old->getAs<FunctionNoProtoType>()) {
-    if (const FunctionNoProtoType *NewF = New->getAs<FunctionNoProtoType>()) {
-      QualType OldRetTy = RemovePtrSizeAddrSpace(Ctx, OldF->getReturnType());
-      QualType NewRetTy = RemovePtrSizeAddrSpace(Ctx, NewF->getReturnType());
-
-      return Ctx.hasSameType(
-          Ctx.getFunctionNoProtoType(OldRetTy, OldF->getExtInfo()),
-          Ctx.getFunctionNoProtoType(NewRetTy, NewF->getExtInfo()));
-    }
-  }
-
-  return false;
-}
-
 /// MergeFunctionDecl - We just parsed a function 'New' from
 /// declarator D which has the same name and scope as a previous
 /// declaration 'Old'.  Figure out how to resolve this situation,
@@ -3716,7 +3658,7 @@ bool Sema::MergeFunctionDecl(FunctionDecl *New, NamedDecl *&OldD,
 
   // Check if the function types are compatible when pointer size address
   // spaces are ignored.
-  if (HasSameFunctionTypeIgnoringPointerSizes(Context, OldQType, NewQType))
+  if (Context.hasSameFunctionTypeIgnoringPtrSizes(OldQType, NewQType))
     return false;
 
   // GNU C permits a K&R definition to follow a prototype declaration

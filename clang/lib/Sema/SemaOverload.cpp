@@ -2922,16 +2922,6 @@ void Sema::HandleFunctionTypeMismatch(PartialDiagnostic &PDiag,
   PDiag << ft_default;
 }
 
-static QualType RemovePtrSizeAddrSpace(ASTContext &Ctx, QualType T) {
-  if (const PointerType *Ptr = T->getAs<PointerType>()) {
-    QualType Pointee = Ptr->getPointeeType();
-    if (isPtrSizeAddressSpace(Pointee.getAddressSpace())) {
-      return Ctx.getPointerType(Ctx.removeAddrSpaceQualType(Pointee));
-    }
-  }
-  return T;
-}
-
 /// FunctionParamTypesAreEqual - This routine checks two function proto types
 /// for equality of their argument types. Caller has already checked that
 /// they have same number of arguments.  If the parameters are different,
@@ -2945,8 +2935,8 @@ bool Sema::FunctionParamTypesAreEqual(const FunctionProtoType *OldType,
        O && (O != E); ++O, ++N) {
     // Ignore address spaces in pointee type. This is to disallow overloading
     // on __ptr32/__ptr64 address spaces.
-    QualType Old = RemovePtrSizeAddrSpace(Context, O->getUnqualifiedType());
-    QualType New = RemovePtrSizeAddrSpace(Context, N->getUnqualifiedType());
+    QualType Old = Context.removePtrSizeAddrSpace(O->getUnqualifiedType());
+    QualType New = Context.removePtrSizeAddrSpace(N->getUnqualifiedType());
 
     if (!Context.hasSameType(Old, New)) {
       if (ArgPos)
